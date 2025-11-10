@@ -1,6 +1,7 @@
 from app.api.health import healthcheck
 from app.api.file import upload
 from app.api.auth import register, login, logout, me
+from app.api.admin import forceLogout
 
 
 def add_router(application):
@@ -11,3 +12,5 @@ def add_router(application):
     application.include_router(login.router)
     application.include_router(logout.router)
     application.include_router(me.router)
+
+    application.include_router(forceLogout.router)
