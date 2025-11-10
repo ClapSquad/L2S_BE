@@ -10,3 +10,6 @@ uploads
 
 # Idea project settings
 .idea
+
+# Local database file
+*.db

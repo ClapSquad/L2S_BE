@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Request, Response, HTTPException, status
+from fastapi import APIRouter, Request, Response, HTTPException, status, Depends
 from pydantic import BaseModel
-from app.db.fakedb import fakedb
+from app.model.user import UserModel
+from sqlalchemy.orm import Session
+from app.db.dependency import get_db
 
 router = APIRouter(
     prefix="/auth",
@@ -16,21 +18,18 @@ class LoginRequest(BaseModel):
 async def login(
         request: Request,
         response: Response,
-        data: LoginRequest
+        data: LoginRequest,
+        db: Session = Depends(get_db)
 ):
-    email = data.email
-    password = data.password
-
-    user = fakedb.get(email)
-    if not user or user.password != password:
+    user = db.query(UserModel).filter(UserModel.email == data.email).first()
+    if not user or user.password != data.password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Id or password is not correct"
         )
 
-    request.session["user"] = email
+    request.session["user_id"] = user.id
 
     return {
-        "message": "Successfully logged in",
-        "username": user.username
+        "message": "Successfully logged in"
     }
