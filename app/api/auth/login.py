@@ -10,13 +10,12 @@ from app.config.environments import SESSION_EXPIRE_TIME
 
 router = APIRouter(
     prefix="/auth",
-    tags=["Auth"])
-
+    tags=["Auth"]
+)
 
 class LoginRequest(BaseModel):
     email: str
     password: str
-
 
 @router.post("/login")
 async def login(
@@ -48,7 +47,7 @@ async def login(
         value=session_token,
         httponly=True,
         max_age=SESSION_EXPIRE_TIME,
-        secure=False, #NO HTTPS TIL DOMAIN BUY
+        secure=False,  # NO HTTPS UNTIL DOMAIN SETUP
         samesite="lax"
     )
 
