@@ -5,4 +5,3 @@ starlette
 sqlalchemy
 uvicorn
 itsdangerous
-python-multipart
