@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Integer, String
-from app.db.database import Base
+from app.db.base import Base  # <- this import now works
 
 class UserModel(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    email = Column(String, unique=True, nullable=False, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
