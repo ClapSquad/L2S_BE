@@ -1,5 +1,5 @@
 from app.api.health import healthcheck
-from app.api.video import upload
+from app.api.video import upload_file, upload_youtube
 from app.api.auth import (register, login, logout, withdraw, me)
 from app.api.credit import add, use
 from app.api.admin import forceLogout
@@ -7,7 +7,9 @@ from app.api.admin import forceLogout
 
 def add_router(application):
     application.include_router(healthcheck.router)
-    application.include_router(upload.router)
+
+    application.include_router(upload_file.router)
+    application.include_router(upload_youtube.router)
 
     application.include_router(register.router)
     application.include_router(login.router)

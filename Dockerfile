@@ -9,6 +9,12 @@ ENV PYTHONUNBUFFERED=1
 # Set the working directory in the container
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
 # ---- Builder Stage ----
 FROM base AS builder
 
