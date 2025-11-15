@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import APIRouter, UploadFile, File
 import os, shutil
 
@@ -5,19 +6,9 @@ router = APIRouter(
     prefix="/video",
     tags=["Video"])
 
-BASE_DIR = (
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(
-                    os.path.abspath(__file__)
-                )
-            )
-        )
-    )
-)
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+UPLOAD_DIR = Path(__file__).resolve().parents[3] / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 @router.post("/upload")
