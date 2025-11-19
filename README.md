@@ -90,5 +90,5 @@ kill -9 <PID>
 OpenAPI documentation can be accessed by entering:
 
 ```
-https://localhost:<PORT_NUMBER>/docs
+http://localhost:<PORT_NUMBER>/docs
 ```
