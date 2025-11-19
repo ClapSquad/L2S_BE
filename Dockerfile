@@ -42,7 +42,7 @@ FROM base AS final
 # Copy the pre-built wheels from the builder stage
 COPY --from=builder /app/wheels /wheels
 RUN pip install --no-index --find-links=/wheels /wheels/*
-
+COPY . .
 # Expose the port the app runs on
 EXPOSE 8080
 
