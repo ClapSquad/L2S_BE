@@ -15,3 +15,7 @@ SESSION_EXPIRE_TIME = int(os.getenv("SESSION_EXPIRE_TIME", DEFAULT_SESSION_EXPIR
 PORT = int(os.getenv("PORT", DEFAULT_PORT))
 ENVIRONMENT = os.getenv("ENVIRONMENT", DEFAULT_ENVIRONMENT)
 ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")]
+
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL")
+if not SUPABASE_DB_URL:
+    raise RuntimeError("SUPABASE_DB_URL environment variable is missing! Set it in your .env file.")
