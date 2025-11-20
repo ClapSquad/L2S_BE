@@ -17,5 +17,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", DEFAULT_ENVIRONMENT)
 ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")]
 
 SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL")
-if not SUPABASE_DB_URL:
-    raise RuntimeError("SUPABASE_DB_URL environment variable is missing! Set it in your .env file.")
+SUPABASE_PROJECT_URL = os.getenv("SUPABASE_PROJECT_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+if not all([SUPABASE_DB_URL, SUPABASE_PROJECT_URL, SUPABASE_SERVICE_KEY]):
+    raise RuntimeError("SUPABASE related environment variable is missing! Set it in your .env file.")
