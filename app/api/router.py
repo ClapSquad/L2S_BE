@@ -3,6 +3,7 @@ from app.api.video import upload_file, upload_youtube, detail, my, recent, downl
 from app.api.auth import (register, login, logout, withdraw, me)
 from app.api.credit import add, use
 from app.api.admin import forceLogout
+from app.api.test_ai import router as test_ai_router
 
 
 def add_router(application):
@@ -26,3 +27,4 @@ def add_router(application):
     application.include_router(use.router)
 
     application.include_router(forceLogout.router)
+    application.include_router(test_ai_router)
