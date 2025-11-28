@@ -1,28 +1,23 @@
-from app.api.health import healthcheck
-from app.api.video import upload_file, upload_youtube, detail, my, recent, download, delete
-from app.api.auth import (register, login, logout, withdraw, me)
-from app.api.credit import add, use
-from app.api.admin import forceLogout
+from app.api.router_base import routers
+import pkgutil, importlib
+import app.api
+
+
+def init_router(package):
+    package_path = package.__path__
+    module_name = package.__name__
+
+    for module_info in pkgutil.iter_modules(package_path):
+        name = module_info.name
+        full_module = f"{module_name}.{name}"
+
+        module = importlib.import_module(full_module)
+
+        if hasattr(module, "__path__"):
+            init_router(module)
 
 
 def add_router(application):
-    application.include_router(healthcheck.router)
-
-    application.include_router(upload_file.router)
-    application.include_router(upload_youtube.router)
-    application.include_router(detail.router)
-    application.include_router(my.router)
-    application.include_router(recent.router)
-    application.include_router(download.router)
-    application.include_router(delete.router)
-
-    application.include_router(register.router)
-    application.include_router(login.router)
-    application.include_router(logout.router)
-    application.include_router(me.router)
-    application.include_router(withdraw.router)
-
-    application.include_router(add.router)
-    application.include_router(use.router)
-
-    application.include_router(forceLogout.router)
+    init_router(app.api)
+    for router in routers:
+        application.include_router(router)

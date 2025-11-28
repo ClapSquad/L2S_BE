@@ -1,13 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends
 from pydantic import BaseModel
 from app.model.user import UserModel
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.utility.security import hash_password
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["Auth"])
+from app.api.router_base import router_auth as router
 
 
 class RegisterModel(BaseModel):

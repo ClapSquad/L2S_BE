@@ -1,14 +1,11 @@
 from datetime import datetime, UTC
-from fastapi import APIRouter, Request, HTTPException, status, Depends
+from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.user import  UserModel
 from pydantic import BaseModel
-
-router = APIRouter(
-    prefix="/credit",
-    tags=["Credit"])
+from app.api.router_base import router_credit as router
 
 
 class CreditAddRequest(BaseModel):

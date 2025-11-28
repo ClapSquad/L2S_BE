@@ -1,9 +1,4 @@
-from fastapi import APIRouter
-
-router = APIRouter(
-    prefix="/health",
-    tags=["Health"]
-)
+from app.api.router_base import router_health as router
 
 
 @router.get(

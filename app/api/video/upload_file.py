@@ -1,6 +1,6 @@
 import uuid, tempfile, os
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status, Depends
+from fastapi import UploadFile, File, Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.session import SessionModel
@@ -9,10 +9,7 @@ from app.model.user import UserModel
 from datetime import datetime, UTC
 from app.utility.storage import upload_to_supabase_storage, upload_file_to_supabase_storage
 from app.utility.video import generate_thumbnail
-
-router = APIRouter(
-    prefix="/video",
-    tags=["Video"])
+from app.api.router_base import router_video as router
 
 
 @router.post("/upload/file")
