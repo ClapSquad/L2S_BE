@@ -9,6 +9,7 @@ from app.model.user import UserModel
 from datetime import datetime, UTC
 from app.utility.storage import upload_to_supabase_storage, upload_file_to_supabase_storage
 from app.utility.video import generate_thumbnail
+import aiofiles
 
 router = APIRouter(
     prefix="/video",
@@ -49,10 +50,10 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
     temp_thumbnail_path = os.path.join(temp_dir, thumbnail_filename)
 
     try:
-        # Save uploaded file temporarily
-        with open(temp_video_path, "wb") as buffer:
+        # Save uploaded file temporarily (비동기 파일 I/O - 블로킹 방지)
+        async with aiofiles.open(temp_video_path, "wb") as buffer:
             content = await file.read()
-            buffer.write(content)
+            await buffer.write(content)
 
         # Upload video to Supabase Storage
         await file.seek(0)  # Reset file pointer
@@ -62,8 +63,8 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
             bucket="videos"
         )
 
-        # Generate thumbnail using FFmpeg
-        thumbnail_generated = generate_thumbnail(
+        # Generate thumbnail using FFmpeg (비동기 실행 - 블로킹 방지)
+        thumbnail_generated = await generate_thumbnail(
             video_path=temp_video_path,
             output_path=temp_thumbnail_path,
             timestamp="00:00:01"  # Extract frame at 1 second
@@ -71,9 +72,9 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
 
         thumbnail_url = None
         if thumbnail_generated and os.path.exists(temp_thumbnail_path):
-            # Upload thumbnail to Supabase Storage
-            with open(temp_thumbnail_path, 'rb') as thumb_file:
-                thumbnail_content = thumb_file.read()
+            # Upload thumbnail to Supabase Storage (비동기 파일 I/O - 블로킹 방지)
+            async with aiofiles.open(temp_thumbnail_path, 'rb') as thumb_file:
+                thumbnail_content = await thumb_file.read()
 
             thumbnail_url = await upload_file_to_supabase_storage(
                 file_content=thumbnail_content,

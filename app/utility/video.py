@@ -2,6 +2,7 @@
 Video processing utilities using FFmpeg
 """
 import subprocess
+import asyncio
 import os
 from pathlib import Path
 
@@ -25,7 +26,7 @@ def check_ffmpeg_installed() -> bool:
         return False
 
 
-def generate_thumbnail(
+async def generate_thumbnail(
         video_path: str,
         output_path: str,
         timestamp: str = "00:00:01",
@@ -34,7 +35,10 @@ def generate_thumbnail(
         quality: int = 2
 ) -> bool:
     """
-    Generate a thumbnail image from a video file using FFmpeg
+    Generate a thumbnail image from a video file using FFmpeg (async)
+
+    이 함수는 비동기로 실행되어 이벤트 루프를 블로킹하지 않습니다.
+    영상 썸네일 생성 중에도 다른 사용자의 로그인 요청 등을 처리할 수 있습니다.
 
     Args:
         video_path: Path to the input video file
@@ -68,13 +72,19 @@ def generate_thumbnail(
             output_path
         ]
 
-        # Run FFmpeg
-        result = subprocess.run(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True
+        # Run FFmpeg asynchronously (비동기 실행 - 이벤트 루프를 블로킹하지 않음)
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
         )
+
+        stdout, stderr = await process.communicate()
+
+        # Check return code
+        if process.returncode != 0:
+            print(f"FFmpeg error: {stderr.decode()}")
+            return False
 
         # Check if thumbnail was created
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
@@ -83,9 +93,6 @@ def generate_thumbnail(
             print("Error: Thumbnail file was not created")
             return False
 
-    except subprocess.CalledProcessError as e:
-        print(f"FFmpeg error: {e.stderr.decode()}")
-        return False
     except Exception as e:
         print(f"Error generating thumbnail: {str(e)}")
         return False
