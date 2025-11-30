@@ -1,11 +1,8 @@
-from fastapi import APIRouter, Request, Response, HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.session import SessionModel
-
-router = APIRouter(
-    prefix="/admin",
-    tags=["Admin"])
+from app.api.router_base import router_admin as router
 
 
 @router.post("/force-logout/{id}")

@@ -21,3 +21,8 @@ SUPABASE_PROJECT_URL = os.getenv("SUPABASE_PROJECT_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 if not all([SUPABASE_DB_URL, SUPABASE_PROJECT_URL, SUPABASE_SERVICE_KEY]):
     raise RuntimeError("SUPABASE related environment variable is missing! Set it in your .env file.")
+
+RUNPOD_URL = os.getenv("RUNPOD_URL")
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
+if not all([RUNPOD_URL, RUNPOD_API_KEY]):
+    raise RuntimeError("RUNPOD related environment variable is missing! Set it in your .env file.")

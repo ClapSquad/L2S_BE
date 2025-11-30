@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, status, Depends, Query
+from fastapi import Request, HTTPException, status, Depends, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
@@ -6,12 +6,8 @@ from app.model.session import SessionModel
 from app.model.video import VideoModel
 from app.model.user import UserModel
 from datetime import datetime, UTC
-
 from app.utility.storage import create_signed_url
-
-router = APIRouter(
-    prefix="/video",
-    tags=["Video"])
+from app.api.router_base import router_video as router
 
 
 @router.get("/download")

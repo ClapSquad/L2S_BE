@@ -5,10 +5,7 @@ from app.model.session import SessionModel
 from app.model.video import VideoModel
 from app.model.user import UserModel
 from datetime import datetime, UTC
-
-router = APIRouter(
-    prefix="/video",
-    tags=["Video"])
+from app.api.router_base import router_video as router
 
 
 @router.get("/{id}/detail")
@@ -53,5 +50,6 @@ async def get_video_detail(id: int, request: Request, db: Session = Depends(get_
         "user_id": video.user_id,
         "youtube_id": video.youtube_id,
         "file_path": video.file_path,
-        "thumbnail_path": video.thumbnail_path
+        "thumbnail_path": video.thumbnail_path,
+        "result_path": video.result_path,
     }

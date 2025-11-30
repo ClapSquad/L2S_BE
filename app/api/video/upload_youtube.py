@@ -1,5 +1,5 @@
 from pathlib import Path
-from fastapi import APIRouter, Request, HTTPException, status, Depends
+from fastapi import Request, HTTPException, status, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
@@ -11,11 +11,7 @@ from app.utility.youtube import download_youtube_video
 from app.utility.storage import upload_file_to_supabase_storage
 from app.utility.video import generate_thumbnail
 import tempfile, os, uuid
-
-router = APIRouter(
-    prefix="/video",
-    tags=["Video"]
-)
+from app.api.router_base import router_video as router
 
 
 class YouTubeUploadRequest(BaseModel):

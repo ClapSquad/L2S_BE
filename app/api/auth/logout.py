@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Request, Response, HTTPException, status, Depends
+from fastapi import Request, Response, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.config.environments import ENVIRONMENT
+from app.api.router_base import router_auth as router
+
 
 COOKIE_SECURE = False
 COOKIE_SAMESITE = "lax"
 if ENVIRONMENT == "production":
     COOKIE_SECURE = True
     COOKIE_SAMESITE = "none"
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["Auth"])
 
 
 @router.post("/logout")

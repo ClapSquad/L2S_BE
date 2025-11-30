@@ -1,14 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException, status, Depends, Query
+from fastapi import Request, HTTPException, status, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.video import VideoModel
 from app.model.user import UserModel
 from datetime import datetime, UTC
-
-router = APIRouter(
-    prefix="/videos",
-    tags=["Video"])
+from app.api.router_base import router_video as router
 
 
 @router.get("/recent")
@@ -48,7 +45,8 @@ async def get_recent_videos(
                 "user_id": video.user_id,
                 "youtube_id": video.youtube_id,
                 "file_path": video.file_path,
-                "thumbnail_path": video.thumbnail_path
+                "thumbnail_path": video.thumbnail_path,
+                "result_path": video.result_path,
             }
             for video in videos
         ],

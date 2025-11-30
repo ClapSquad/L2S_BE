@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, UTC, timedelta
-from fastapi import APIRouter, Request, Response, HTTPException, status, Depends
+from fastapi import Request, Response, HTTPException, status, Depends
 from pydantic import BaseModel
 from app.model.user import UserModel
 from app.model.session import SessionModel
@@ -8,16 +8,13 @@ from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.config.environments import SESSION_EXPIRE_TIME, ENVIRONMENT
 from app.utility.security import verify_password
+from app.api.router_base import router_auth as router
 
 COOKIE_SECURE = False
 COOKIE_SAMESITE = "lax"
 if ENVIRONMENT == "production":
     COOKIE_SECURE = True
     COOKIE_SAMESITE = "none"
-
-router = APIRouter(
-    prefix="/auth",
-    tags=["Auth"])
 
 
 class LoginRequest(BaseModel):

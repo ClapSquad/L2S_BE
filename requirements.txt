@@ -11,3 +11,4 @@ bcrypt==3.2.2
 yt-dlp
 psycopg2-binary
 supabase
+requests
