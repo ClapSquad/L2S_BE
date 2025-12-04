@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
+from app.model.job import JobModel
 from app.model.session import SessionModel
 from app.model.video import VideoModel
 from app.model.user import UserModel
@@ -46,6 +47,26 @@ async def delete_video(id: int, request: Request, db: Session = Depends(get_db))
             detail="You don't have permission to delete this video"
         )
 
+    # Check for related jobs
+    related_jobs = db.query(JobModel).filter(JobModel.video_id == id).all()
+
+    # Check if any job is still running
+    running_jobs = [job for job in related_jobs if job.status in ["pending", "processing"]]
+    if running_jobs:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot delete video. {len(running_jobs)} job(s) still running. Please wait for completion or cancel them first."
+        )
+
+    # Delete related job result files from storage and jobs from database
+    for job in related_jobs:
+        if job.result_url:
+            try:
+                await delete_from_supabase_storage(job.result_url, bucket="outputs")
+            except Exception as e:
+                print(f"Error deleting job result file from Supabase Storage: {str(e)}")
+
+        db.delete(job)
     # Delete the video file from Supabase Storage
     try:
         await delete_from_supabase_storage(video.file_path, bucket="videos")
