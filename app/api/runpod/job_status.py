@@ -47,6 +47,7 @@ async def get_job_status(job_id: str, request: Request, db: Session = Depends(ge
         )
     
     return {
+        "video_id": job.video_id,
         "status": job.status,
         "method": job.method,
         "result_url": job.result_url,
