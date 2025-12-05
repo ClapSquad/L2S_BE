@@ -43,10 +43,6 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
             detail="Insufficient credit"
         )
 
-    user.credit -= 1
-    db.commit()
-
-
     file_extension = Path(file.filename).suffix
     video_uuid = str(uuid.uuid4())
     unique_filename = f"{video_uuid}{file_extension}"
@@ -109,6 +105,9 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
     db.add(video)
     db.commit()
     db.refresh(video)
+
+    user.credit -= 1
+    db.commit()
 
     return {
         "message": f"File '{file.filename}' uploaded successfully!",

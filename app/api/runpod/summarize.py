@@ -48,9 +48,6 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             detail="Insufficient credit"
         )
 
-    user.credit -= 1
-    db.commit()
-
     video = db.query(VideoModel).filter(VideoModel.id == body.video_id).first()
     if not user:
         raise HTTPException(
@@ -98,6 +95,9 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             job.status = JobStatus.PROCESSING
             job.started_at = datetime.now(UTC)
             db.commit()
+
+        user.credit -= 1
+        db.commit()
         
         return {
             "job_id": job.id,

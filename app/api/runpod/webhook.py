@@ -4,6 +4,7 @@ from app.db.dependency import get_db
 from app.model.job import JobModel, JobStatus
 from datetime import datetime, UTC
 from app.api.router_base import router_runpod as router
+from app.model.user import UserModel
 
 
 @router.post("/webhook/{job_id}")
@@ -43,6 +44,8 @@ async def runpod_webhook(job_id: str, request: Request, db: Session = Depends(ge
             job.status = JobStatus.FAILED
             job.error_message = error
             job.completed_at = datetime.now(UTC)
+            user = db.query(UserModel).filter(UserModel.id == job.user_id).first()
+            user.credit += 1
         else:
             # Unknown status, log it but don't fail
             job.error_message = f"Unknown status from webhook: {status}"
