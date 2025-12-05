@@ -37,6 +37,16 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
             detail="User not found"
         )
 
+    if user.credit < 1:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Insufficient credit"
+        )
+
+    user.credit -= 1
+    db.commit()
+
+
     file_extension = Path(file.filename).suffix
     video_uuid = str(uuid.uuid4())
     unique_filename = f"{video_uuid}{file_extension}"
@@ -75,20 +85,12 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
                 }
             }
         )
-
     except Exception as e:
-        # Clean up temporary files
-        if os.path.exists(temp_dir):
-            import shutil
-            shutil.rmtree(temp_dir)
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload file: {str(e)}"
         )
-
     finally:
-        # Clean up temporary files
         if os.path.exists(temp_dir):
             import shutil
             shutil.rmtree(temp_dir)
@@ -98,7 +100,6 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
     if thumbnail_url.endswith(".mp4"):
         thumbnail_url = thumbnail_url[:-4] + ".jpg"
 
-    # Save to database
     video = VideoModel(
         user_id=user.id,
         file_path=str(file_url),
