@@ -51,11 +51,14 @@ async def delete_job(job_id: str, request: Request, db: Session = Depends(get_db
             detail="Job is still running, can only delete when completed or failed"
         )
 
-    if job.result_path != None:
+    if job.result_url != None:
         try:
-            await delete_from_supabase_storage(job.result_path, bucket="outputs")
+            await delete_from_supabase_storage(job.result_url, bucket="outputs")
         except Exception as e:
             print(f"Error deleting result video file from Supabase Storage: {str(e)}")
+
+    db.delete(job)
+    db.commit()
 
     return {
         "message": "Job deleted successfully",
