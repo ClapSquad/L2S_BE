@@ -94,6 +94,7 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             job.runpod_job_id = runpod_response["id"]
             job.status = JobStatus.PROCESSING
             job.started_at = datetime.now(UTC)
+            job.name = f"Job {runpod_response['id'][:4]}"
             db.commit()
 
         user.credit -= 1

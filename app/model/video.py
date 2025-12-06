@@ -10,3 +10,4 @@ class VideoModel(Base):
     file_path = Column(String, nullable=False)
     thumbnail_path = Column(String, nullable=True)
     file_path = Column(String, nullable=False)
+    name = Column(String, nullable=False)

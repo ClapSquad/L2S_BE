@@ -99,6 +99,7 @@ async def upload_file(request: Request, file: UploadFile = File(...), db: Sessio
     video = VideoModel(
         user_id=user.id,
         file_path=str(file_url),
+        name=file.filename,
         thumbnail_path=thumbnail_url,
         youtube_id=None
     )
