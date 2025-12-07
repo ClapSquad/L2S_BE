@@ -1,5 +1,6 @@
 from fastapi import Request, Response, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from datetime import datetime, UTC
 from app.db.dependency import get_db
 from app.model.session import SessionModel
@@ -16,7 +17,7 @@ if ENVIRONMENT == "production":
 
 
 @router.delete("/withdraw")
-async def withdraw(request: Request, response: Response, db: Session = Depends(get_db)):
+async def withdraw(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(
@@ -24,11 +25,10 @@ async def withdraw(request: Request, response: Response, db: Session = Depends(g
             detail="Not logged in"
         )
 
-    session = (
-        db.query(SessionModel)
-        .filter(SessionModel.session_token == session_token)
-        .first()
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
     )
+    session = result.scalar_one_or_none()
 
     if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
         raise HTTPException(
@@ -36,9 +36,9 @@ async def withdraw(request: Request, response: Response, db: Session = Depends(g
             detail="Session expired or invalid"
         )
 
-    db.query(UserModel).filter(UserModel.id == session.user_id).delete()
-    db.query(SessionModel).filter(SessionModel.session_token == session_token).delete()
-    db.commit()
+    await db.execute(delete(UserModel).where(UserModel.id == session.user_id))
+    await db.execute(delete(SessionModel).where(SessionModel.session_token == session_token))
+    await db.commit()
 
     response.delete_cookie(
         "session_token",

@@ -1,7 +1,8 @@
 import uuid
 from pathlib import Path
-from fastapi import  Request, HTTPException, Depends
-from sqlalchemy.orm import Session
+from fastapi import Request, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.user import UserModel
@@ -16,17 +17,25 @@ async def upload_presigned(
         request: Request,
         filename: str,
         content_type: str,
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(status_code=401, detail="Login required")
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
     if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

@@ -1,7 +1,8 @@
 from fastapi import Request, HTTPException, status, Depends
 from pydantic import BaseModel
 from typing import Literal
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.user import UserModel
@@ -10,7 +11,8 @@ from app.model.job import JobModel, JobStatus
 from datetime import datetime, UTC
 from app.config.environments import RUNPOD_URL, RUNPOD_API_KEY, BACKEND_URL
 from app.api.router_base import router_runpod as router
-import requests, os
+import requests
+
 
 class SummarizeRequest(BaseModel):
     video_id: int
@@ -20,7 +22,7 @@ class SummarizeRequest(BaseModel):
 
 
 @router.post("/summarize")
-async def summarize(request: Request, body: SummarizeRequest, db: Session = Depends(get_db)):
+async def summarize(request: Request, body: SummarizeRequest, db: AsyncSession = Depends(get_db)):
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(
@@ -28,14 +30,22 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             detail="Login required"
         )
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
     if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or invalid"
         )
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -48,14 +58,17 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             detail="Insufficient credit"
         )
 
-    video = db.query(VideoModel).filter(VideoModel.id == body.video_id).first()
+    result = await db.execute(
+        select(VideoModel).where(VideoModel.id == body.video_id)
+    )
+    video = result.scalar_one_or_none()
+
     if not video:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Video not found"
         )
-    
-    # Create job record in database
+
     job = JobModel(
         user_id=user.id,
         video_id=video.id,
@@ -63,12 +76,12 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
         status=JobStatus.PENDING,
         subtitle=body.subtitle,
         vertical=body.vertical,
+        name="Pending Job"
     )
     db.add(job)
-    db.commit()
-    db.refresh(job)
-    
-    # Send request to RunPod
+    await db.commit()
+    await db.refresh(job)
+
     try:
         r = requests.post(
             url=f"{RUNPOD_URL}/run",
@@ -90,33 +103,31 @@ async def summarize(request: Request, body: SummarizeRequest, db: Session = Depe
             },
             timeout=30
         )
-        
+
         runpod_response = r.json()
-        
-        # Update job with RunPod's job ID and set status to processing
+
         if "id" in runpod_response:
             job.runpod_job_id = runpod_response["id"]
             job.status = JobStatus.PROCESSING
             job.started_at = datetime.now(UTC)
             job.name = f"Job {runpod_response['id'][:4]}"
-            db.commit()
+            await db.commit()
 
         user.credit -= 1
-        db.commit()
-        
+        await db.commit()
+
         return {
             "job_id": job.id,
             "runpod_job_id": runpod_response.get("id"),
             "status": job.status,
             "message": "Job submitted successfully"
         }
-        
+
     except requests.exceptions.RequestException as e:
-        # Update job status to failed
         job.status = JobStatus.FAILED
         job.error_message = f"Failed to submit job to RunPod: {str(e)}"
-        db.commit()
-        
+        await db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to submit job to RunPod: {str(e)}"

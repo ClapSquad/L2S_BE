@@ -1,5 +1,6 @@
 from fastapi import Request, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.user import UserModel
@@ -9,7 +10,7 @@ from app.api.router_base import router_runpod as router
 
 
 @router.get("/job/{job_id}/status")
-async def get_job_status(job_id: str, request: Request, db: Session = Depends(get_db)):
+async def get_job_status(job_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(
@@ -17,35 +18,45 @@ async def get_job_status(job_id: str, request: Request, db: Session = Depends(ge
             detail="Login required"
         )
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
     if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or invalid"
         )
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
-    # Find job
-    job = db.query(JobModel).filter(JobModel.id == job_id).first()
+    result = await db.execute(
+        select(JobModel).where(JobModel.id == job_id)
+    )
+    job = result.scalar_one_or_none()
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found"
         )
-    
-    # Check if user owns this job
+
     if job.user_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this job"
         )
-    
+
     return {
         "video_id": job.video_id,
         "status": job.status,

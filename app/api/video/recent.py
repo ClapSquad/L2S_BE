@@ -1,5 +1,6 @@
 from fastapi import Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.job import JobModel
 from app.model.user import UserModel
@@ -10,17 +11,19 @@ from app.api.router_base import router_video as router
 @router.get("/recent")
 async def get_recent_videos(
     limit: int = Query(default=10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    jobs = (
-        db.query(JobModel, UserModel, VideoModel)
+    query = (
+        select(JobModel, UserModel, VideoModel)
         .join(UserModel, JobModel.user_id == UserModel.id)
         .join(VideoModel, JobModel.video_id == VideoModel.id)
-        .filter(JobModel.status == "completed")
+        .where(JobModel.status == "completed")
         .order_by(JobModel.created_at.desc())
         .limit(limit)
-        .all()
     )
+
+    result = await db.execute(query)
+    jobs = result.all()
 
     jobs_data = []
     for job, user, video in jobs:
