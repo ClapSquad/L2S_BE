@@ -36,8 +36,8 @@ async def withdraw(request: Request, response: Response, db: AsyncSession = Depe
             detail="Session expired or invalid"
         )
 
-    await db.execute(delete(UserModel).where(UserModel.id == session.user_id))
     await db.execute(delete(SessionModel).where(SessionModel.session_token == session_token))
+    await db.execute(delete(UserModel).where(UserModel.id == session.user_id))
     await db.commit()
 
     response.delete_cookie(

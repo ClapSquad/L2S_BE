@@ -24,7 +24,7 @@ async def runpod_webhook(job_id: str, request: Request, db: AsyncSession = Depen
             )
 
         result = await db.execute(
-            select(JobModel).where(JobModel.id == job_id)
+            select(JobModel).where(JobModel.id == int(job_id))
         )
         job = result.scalar_one_or_none()
 

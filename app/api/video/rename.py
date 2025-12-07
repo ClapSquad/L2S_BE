@@ -47,7 +47,7 @@ async def rename(request: Request, data: RenameRequest, db: AsyncSession = Depen
         )
 
     result = await db.execute(
-        select(VideoModel).where(VideoModel.id == data.video_id)
+        select(VideoModel).where(VideoModel.id == int(data.video_id))
     )
     video = result.scalar_one_or_none()
 
