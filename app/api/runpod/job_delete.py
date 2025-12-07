@@ -1,5 +1,6 @@
 from fastapi import Request, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.user import UserModel
@@ -7,10 +8,11 @@ from app.model.job import JobModel
 from datetime import datetime, UTC
 from app.api.router_base import router_runpod as router
 from app.utility.storage import delete_from_supabase_storage
+from app.utility.time import utc_now
 
 
 @router.delete("/job/{job_id}")
-async def delete_job(job_id: str, request: Request, db: Session = Depends(get_db)):
+async def delete_job(job_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(
@@ -18,21 +20,33 @@ async def delete_job(job_id: str, request: Request, db: Session = Depends(get_db
             detail="Login required"
         )
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
-    if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session or (session.expires_at and session.expires_at < utc_now()):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or invalid"
         )
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
-    job = db.query(JobModel).filter(JobModel.id == job_id).first()
+    result = await db.execute(
+        select(JobModel).where(JobModel.id == int(job_id))
+    )
+    job = result.scalar_one_or_none()
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -51,14 +65,14 @@ async def delete_job(job_id: str, request: Request, db: Session = Depends(get_db
             detail="Job is still running, can only delete when completed or failed"
         )
 
-    if job.result_url != None:
+    if job.result_url is not None:
         try:
             await delete_from_supabase_storage(job.result_url, bucket="outputs")
         except Exception as e:
             print(f"Error deleting result video file from Supabase Storage: {str(e)}")
 
-    db.delete(job)
-    db.commit()
+    await db.delete(job)
+    await db.commit()
 
     return {
         "message": "Job deleted successfully",

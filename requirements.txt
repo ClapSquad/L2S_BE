@@ -2,7 +2,7 @@ fastapi
 pydantic
 python-dotenv
 starlette
-sqlalchemy
+sqlalchemy[asyncio]
 uvicorn
 itsdangerous
 python-multipart
@@ -12,3 +12,5 @@ yt-dlp
 psycopg2-binary
 supabase
 requests
+asyncpg
+greenlet

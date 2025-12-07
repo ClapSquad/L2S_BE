@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException, status, Depends, Query
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.video import VideoModel
@@ -8,13 +9,14 @@ from app.model.user import UserModel
 from datetime import datetime, UTC
 from app.utility.storage import create_signed_url
 from app.api.router_base import router_video as router
+from app.utility.time import utc_now
 
 
 @router.get("/download")
 async def download_video(
-    video_id: int = Query(..., description="Video ID to download"),
-    request: Request = None,
-    db: Session = Depends(get_db)
+        video_id: int = Query(..., description="Video ID to download"),
+        request: Request = None,
+        db: AsyncSession = Depends(get_db)
 ):
     session_token = request.cookies.get("session_token")
     if not session_token:
@@ -23,21 +25,33 @@ async def download_video(
             detail="Login required"
         )
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
-    if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session or (session.expires_at and session.expires_at < utc_now()):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or invalid"
         )
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
-    video = db.query(VideoModel).filter(VideoModel.id == video_id).first()
+    result = await db.execute(
+        select(VideoModel).where(VideoModel.id == video_id)
+    )
+    video = result.scalar_one_or_none()
+
     if not video:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

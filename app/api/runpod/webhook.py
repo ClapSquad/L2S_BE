@@ -1,23 +1,19 @@
-from fastapi import Request, HTTPException, Depends
-from sqlalchemy.orm import Session
+from fastapi import Request, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.job import JobModel, JobStatus
+from app.model.user import UserModel
 from datetime import datetime, UTC
 from app.api.router_base import router_runpod as router
-from app.model.user import UserModel
 
 
 @router.post("/webhook/{job_id}")
-async def runpod_webhook(job_id: str, request: Request, db: Session = Depends(get_db)):
-    """
-    Webhook endpoint for RunPod to notify us when a job is completed or failed
-    This endpoint does NOT require authentication as it's called by RunPod
-    """
+async def runpod_webhook(job_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     try:
         payload = await request.json()
 
-        assigned_job_id = payload.get("job_id")
-        status = payload.get("status")  # "completed" or "failed"
+        webhook_status = payload.get("status")
         result_url = payload.get("result_url")
         error = payload.get("error")
 
@@ -27,30 +23,36 @@ async def runpod_webhook(job_id: str, request: Request, db: Session = Depends(ge
                 detail="Missing job_id in webhook payload"
             )
 
-        # Find job in database
-        job = db.query(JobModel).filter(JobModel.id == job_id).first()
+        result = await db.execute(
+            select(JobModel).where(JobModel.id == int(job_id))
+        )
+        job = result.scalar_one_or_none()
+
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Job {job_id} not found"
             )
 
-        # Update job status
-        if status == "completed":
+        if webhook_status == "completed":
             job.status = JobStatus.COMPLETED
             job.result_url = result_url
             job.completed_at = datetime.now(UTC)
-        elif status == "failed":
+        elif webhook_status == "failed":
             job.status = JobStatus.FAILED
             job.error_message = error
             job.completed_at = datetime.now(UTC)
-            user = db.query(UserModel).filter(UserModel.id == job.user_id).first()
-            user.credit += 1
-        else:
-            # Unknown status, log it but don't fail
-            job.error_message = f"Unknown status from webhook: {status}"
 
-        db.commit()
+            result = await db.execute(
+                select(UserModel).where(UserModel.id == job.user_id)
+            )
+            user = result.scalar_one_or_none()
+            if user:
+                user.credit += 1
+        else:
+            job.error_message = f"Unknown status from webhook: {webhook_status}"
+
+        await db.commit()
 
         return {
             "message": "Webhook received successfully",

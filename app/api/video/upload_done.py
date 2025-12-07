@@ -1,11 +1,12 @@
 from fastapi import Request, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.db.dependency import get_db
 from app.model.session import SessionModel
 from app.model.video import VideoModel
 from app.model.user import UserModel
-from datetime import datetime, UTC
+from app.utility.time import utc_now
 from app.config.environments import SUPABASE_PROJECT_URL, RUNPOD_URL, RUNPOD_API_KEY
 from app.api.router_base import router_video as router
 import requests
@@ -21,24 +22,30 @@ class UploadDoneRequest(BaseModel):
 async def upload_done(
         request: Request,
         body: UploadDoneRequest,
-        db: Session = Depends(get_db)
+        db: AsyncSession = Depends(get_db)
 ):
-    # 인증 체크 (동일)
     session_token = request.cookies.get("session_token")
     if not session_token:
         raise HTTPException(status_code=401, detail="Login required")
 
-    session = db.query(SessionModel).filter(SessionModel.session_token == session_token).first()
-    if not session or (session.expires_at and session.expires_at < datetime.now(UTC)):
+    result = await db.execute(
+        select(SessionModel).where(SessionModel.session_token == session_token)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session or (session.expires_at and session.expires_at < utc_now()):
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
-    user = db.query(UserModel).filter(UserModel.id == session.user_id).first()
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == session.user_id)
+    )
+    user = result.scalar_one_or_none()
+
     if not user or user.credit < 1:
         raise HTTPException(status_code=402, detail="Insufficient credit")
 
     file_url = f"{SUPABASE_PROJECT_URL}/storage/v1/object/public/videos/{body.filename}"
 
-    # 썸네일 생성 요청
     requests.post(
         url=f"{RUNPOD_URL}/run",
         headers={
@@ -66,11 +73,11 @@ async def upload_done(
         youtube_id=None
     )
     db.add(video)
-    db.commit()
-    db.refresh(video)
+    await db.commit()
+    await db.refresh(video)
 
     user.credit -= 1
-    db.commit()
+    await db.commit()
 
     return {
         "message": "Upload completed",
