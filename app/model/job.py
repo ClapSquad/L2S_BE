@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Boolean
-from datetime import datetime, UTC
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Boolean, func
 from app.db.database import Base
 import enum
 
@@ -25,8 +24,8 @@ class JobModel(Base):
     vertical = Column(Boolean, nullable=False, default=False)
     result_url = Column(String, nullable=True)
     error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
     runpod_job_id = Column(String, nullable=True)  # RunPod's internal job ID
     name = Column(String, nullable=False)
