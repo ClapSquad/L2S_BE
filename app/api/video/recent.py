@@ -1,4 +1,4 @@
-from fastapi import Request, Depends, Query
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 from app.db.dependency import get_db
 from app.model.job import JobModel
@@ -9,25 +9,30 @@ from app.api.router_base import router_video as router
 
 @router.get("/recent")
 async def get_recent_videos(
-    request: Request,
     limit: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
-    jobs = db.query(JobModel).order_by(JobModel.created_at).limit(limit).all()
+    jobs = (
+        db.query(JobModel, UserModel, VideoModel)
+        .join(UserModel, JobModel.user_id == UserModel.id)
+        .join(VideoModel, JobModel.video_id == VideoModel.id)
+        .filter(JobModel.status == "completed")
+        .order_by(JobModel.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
     jobs_data = []
-    for job in jobs:
-        if job.status == "completed":
-            user = db.query(UserModel).filter(UserModel.id == job.user_id).first()
-            video = db.query(VideoModel).filter(VideoModel.id == job.video_id).first()
-            jobs_data.append({
-                "id": job.id,
-                "user": user.username,
-                "method": job.method,
-                "subtitle": job.subtitle,
-                "vertical": job.vertical,
-                "result_url": job.result_url,
-                "thumbnail_path": video.thumbnail_path,
-            })
+    for job, user, video in jobs:
+        jobs_data.append({
+            "id": job.id,
+            "user": user.username,
+            "method": job.method,
+            "subtitle": job.subtitle,
+            "vertical": job.vertical,
+            "result_url": job.result_url,
+            "thumbnail_path": video.thumbnail_path,
+        })
 
     return {
         "videos": jobs_data,
