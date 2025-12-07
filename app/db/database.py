@@ -7,8 +7,8 @@ ASYNC_DB_URL = SUPABASE_DB_URL.replace("postgresql+psycopg2", "postgresql+asyncp
 engine = create_async_engine(
     ASYNC_DB_URL,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=15,
+    max_overflow=15,
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
