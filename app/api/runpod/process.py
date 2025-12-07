@@ -14,6 +14,8 @@ from app.api.router_base import router_runpod as router
 class OptionsModel(BaseModel):
     language: str
     method: Literal["llm_only", "echofusion"]
+    vertical_export: bool = False
+    subtitles: bool = False
 
 class InputModel(BaseModel):
     job_id: str | None = None
