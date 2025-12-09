@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException, status, Depends
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.dependency import get_db
@@ -8,11 +8,9 @@ from app.model.session import SessionModel
 from app.model.user import UserModel
 from app.model.video import VideoModel
 from app.model.job import JobModel, JobStatus
-from datetime import datetime, UTC
 from app.config.environments import RUNPOD_URL, RUNPOD_API_KEY, BACKEND_URL
 from app.api.router_base import router_runpod as router
 import requests
-
 from app.utility.time import utc_now
 
 
@@ -20,7 +18,9 @@ class SummarizeRequest(BaseModel):
     video_id: int
     method: Literal["llm_only", "echofusion"]
     subtitle: bool
+    subtitle_style: Optional[Literal["casual", "dynamic"]] = None
     vertical: bool
+    crop_method: Optional[Literal["blur", "center"]] = None
 
 
 @router.post("/summarize")
@@ -77,7 +77,9 @@ async def summarize(request: Request, body: SummarizeRequest, db: AsyncSession =
         method=body.method,
         status=JobStatus.PENDING,
         subtitle=body.subtitle,
+        subtitle_style=body.subtitle_style,
         vertical=body.vertical,
+        crop_method=body.crop_method,
         name="Pending Job"
     )
     db.add(job)
@@ -98,8 +100,10 @@ async def summarize(request: Request, body: SummarizeRequest, db: AsyncSession =
                     "video_url": video.file_path,
                     "options": {
                         "method": body.method,
-                        "vertical": body.vertical,
                         "subtitles": body.subtitle,
+                        "subtitle_style": body.subtitle_style,
+                        "vertical": body.vertical,
+                        "crop_method": body.crop_method,
                     }
                 }
             },

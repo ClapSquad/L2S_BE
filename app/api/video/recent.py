@@ -36,6 +36,8 @@ async def get_recent_videos(
             "vertical": job.vertical,
             "result_url": job.result_url,
             "thumbnail_path": video.thumbnail_path,
+            "subtitle_style": job.subtitle_style,
+            "crop_method": job.crop_method,
         })
 
     return {

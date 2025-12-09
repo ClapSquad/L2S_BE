@@ -70,4 +70,6 @@ async def get_job_status(job_id: str, request: Request, db: AsyncSession = Depen
         "started_at": job.started_at.isoformat() if job.started_at else None,
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
         "public": job.public,
+        "subtitle_style": job.subtitle_style,
+        "crop_method": job.crop_method,
     }

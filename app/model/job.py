@@ -30,3 +30,5 @@ class JobModel(Base):
     runpod_job_id = Column(String, nullable=True)  # RunPod's internal job ID
     name = Column(String, nullable=False)
     public = Column(Boolean, nullable=False, default=False)
+    subtitle_style = Column(String, nullable=True)
+    crop_method = Column(String, nullable=True)
