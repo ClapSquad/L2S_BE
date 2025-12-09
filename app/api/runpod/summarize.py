@@ -71,6 +71,11 @@ async def summarize(request: Request, body: SummarizeRequest, db: AsyncSession =
             detail="Video not found"
         )
 
+    if body.subtitle_style is None:
+        body.subtitle_style = "dynamic"
+    if body.crop_method is None:
+        body.crop_method = "center"
+
     job = JobModel(
         user_id=user.id,
         video_id=video.id,
